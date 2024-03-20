@@ -1,0 +1,27 @@
+{
+    "date": "03-19-2024",
+    "sleepStages": [
+        {
+            "startTime": "03-19-2024 23:36:34",
+            "endTime": "03-20-2024 23:47:19",
+            "stageDuration": 420,
+            "stage": "Awake"
+        },
+        {
+            "startTime": "03-19-2024 23:47:20",
+            "endTime": "03-20-2024 23:52:51",
+            "stageDuration": 300,
+            "stage": "Light"
+        }
+    ],
+    "totalSleepTime": 23040,
+    "totalAwakeTime": 4440,
+    "totalLightSleep": 300,
+    "totalDeepSleep": 300,
+    "totalREMSleep": 300,
+    "timeToSoundSleep": 300,
+    "sleepStartTime": "03-19-2024 23:36:34",
+    "sleepEndTime": "03-20-2024 07:17:19",
+    "restingHeartRate": 59,
+    "chronotype": "Bear"
+}
