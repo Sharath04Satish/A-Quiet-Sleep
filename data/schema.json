@@ -20,6 +20,8 @@
     "totalDeepSleep": 300,
     "totalREMSleep": 300,
     "timeToSoundSleep": 300,
+    "timeTakenToReachDeepSleep": 10,
+    "timeTakenToReachREMSleep": 10,
     "sleepStartTime": "03-19-2024 23:36:34",
     "sleepEndTime": "03-20-2024 07:17:19",
     "restingHeartRate": 59,
