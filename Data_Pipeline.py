@@ -4,8 +4,9 @@ from datetime import datetime
 
 fitbit_dataset1 = pd.read_json("./data/fitbit_sleep_data_1.json")
 fitbit_dataset2 = pd.read_json("data/fitbit_sleep_data_2.json")
+fitbit_dataset3 = pd.read_json("data/fitbit_sleep_data_3.json")
 fitbit_dataset = pd.json_normalize(
-    pd.concat([fitbit_dataset1, fitbit_dataset2], ignore_index=True).to_dict("records")
+    pd.concat([fitbit_dataset1, fitbit_dataset2, fitbit_dataset3], ignore_index=True).to_dict("records")
 )
 
 selected_columns = [

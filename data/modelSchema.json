@@ -1,14 +1,8 @@
 {
-    "sleepStartTimeMonth": 1,
-    "sleepStartTimeDay": 31,
+    "sleepStartTimeDay": 1,
     "sleepStartTimeHour": 23,
     "sleepStartTimeMinutes": 23,
     "sleepStartTimeSeconds": 23,
-    "sleepEndTimeMonth": 2,
-    "sleepEndTimeDay": 1,
-    "sleepEndTimeHour": 7,
-    "sleepEndTimeMinutes": 39,
-    "sleepEndTimeSeconds": 10,
     "restingHeartRate": 59,
     "stageName": "Awake",
     "stageDuration": 420,
@@ -17,7 +11,6 @@
     "totalLightSleep": 300,
     "totalDeepSleep": 300,
     "totalREMSleep": 300,
-    "timeToSoundSleep": 300,
     "timeTakenToReachDeepSleep": 10,
     "timeTakenToReachREMSleep": 10,
     "chronotype": "Bear"
