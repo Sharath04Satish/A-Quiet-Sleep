@@ -53,6 +53,8 @@ light_seconds = applewatch_df.loc[applewatch_df['Category'] == 'Light'].groupby(
 deep_seconds = applewatch_df.loc[applewatch_df['Category'] == 'Deep'].groupby('Date of Sleep')['seconds'].sum().reset_index()
 rem_seconds = applewatch_df.loc[applewatch_df['Category'] == 'REM'].groupby('Date of Sleep')['seconds'].sum().reset_index()
 
+applewatch_df = applewatch_df[applewatch_df['Category'] != 'Unspecified']
+
 applewatch_df = pd.merge(applewatch_df, seconds_asleep, on='Date of Sleep', how='left', suffixes=('_total', '_asleep'))
 applewatch_df.rename(columns={"seconds_total":"seconds"}, inplace=True)
 applewatch_df = pd.merge(applewatch_df, seconds_awake, on='Date of Sleep', how='left', suffixes=('_total', '_wake'))
@@ -78,4 +80,10 @@ applewatch_df.drop(columns={'End Time', 'Start Time'}, inplace=True)
 
 print("Apple Watch data is cleaned. Shape: ", applewatch_df.shape)
 final_dataset = pd.concat([fitbit_df, applewatch_df])
+
+final_dataset['category'] = final_dataset['category'].replace({'wake': 'awake'})
+
+final_dataset['weekday'] = pd.to_datetime(final_dataset['date_of_sleep']).dt.strftime('%A')
+#final_dataset = final_dataset.drop(columns='date_of_sleep')
+
 final_dataset.to_csv("./data/final_dataset.csv", index=False)
