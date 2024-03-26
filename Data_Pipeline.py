@@ -43,6 +43,7 @@ for index, row in selected_data.iterrows():
         flattened_data.append(flattened_row)
 
 fitbit_df = pd.DataFrame(flattened_data)
+fitbit_df['source'] = 'fitbit'
 fitbit_df.dropna(inplace=True)
 print("Fitbit data is cleaned. Shape: ", fitbit_df.shape)
 
@@ -143,6 +144,13 @@ applewatch_df["time_minutes"] = applewatch_df["Start Time"].dt.minute
 applewatch_df["time_seconds"] = applewatch_df["Start Time"].dt.second
 
 applewatch_df.drop(columns={"End Time", "Start Time", "Heart Rate"}, inplace=True)
+applewatch_df['group'] = ((applewatch_df['time_hours'] >= 15) & (applewatch_df['time_hours'] < 24)).astype(int)
+applewatch_df['date_of_sleep'] = np.where(applewatch_df['group'] == 1, 
+                                          applewatch_df['date_of_sleep'] + pd.Timedelta(days=1),
+                                          applewatch_df['date_of_sleep'])
+applewatch_df.drop('group', axis = 1, inplace=True)
+applewatch_df['source'] = 'applewatch'
+
 
 print("Apple Watch data is cleaned. Shape: ", applewatch_df.shape)
 final_dataset = pd.concat([fitbit_df, applewatch_df])
@@ -153,22 +161,25 @@ final_dataset["weekday"] = pd.to_datetime(final_dataset["date_of_sleep"]).dt.str
 
 final_dataset["date_of_sleep"] = pd.to_datetime(final_dataset["date_of_sleep"])
 
-
 def time_to_sleep_stages(group, sleep_stages):
     time_to_stages = {}
-    
+
     for stage in sleep_stages:
-        stage_index = group[group['category'] == stage].iloc[0].name
-        
-        seconds_before_stage = group.loc[:stage_index-1, 'seconds_count'].sum()
-        
-        time_to_stages[stage] = seconds_before_stage
-    
+        stage_rows = group[group['category'] == stage]
+        if not stage_rows.empty:
+            stage_index = stage_rows.index[0]
+            seconds_before_stage = group.loc[:stage_index-1, 'seconds_count'].sum()
+            time_to_stages[stage] = seconds_before_stage
+        else:
+            time_to_stages[stage] = None
+
     return pd.Series(time_to_stages)
 
-time_to_sleep_stages_df = final_dataset.groupby('date_of_sleep').apply(time_to_sleep_stages, sleep_stages=['deep', 'rem'])
+time_to_sleep_stages_df = final_dataset.groupby(['date_of_sleep']).apply(time_to_sleep_stages, sleep_stages=['deep', 'rem'])
+
 final_dataset = final_dataset.merge(time_to_sleep_stages_df, left_on='date_of_sleep', right_index=True)
 
+final_dataset.rename(columns={'deep': 'time_to_deep_seconds', 'rem': 'time_to_rem_seconds'}, inplace=True)
 # final_dataset = final_dataset.drop(columns='date_of_sleep')
 
 final_dataset.to_csv("./data/final_dataset.csv", index=False)
