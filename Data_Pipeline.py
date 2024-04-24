@@ -11,8 +11,8 @@ import time
 start_time = time.time()
 
 fitbit_dataset1 = pd.read_json("./data/fitbit_sleep_data_1.json")
-fitbit_dataset2 = pd.read_json("data/fitbit_sleep_data_2.json")
-fitbit_dataset3 = pd.read_json("data/fitbit_sleep_data_3.json")
+fitbit_dataset2 = pd.read_json("./data/fitbit_sleep_data_2.json")
+fitbit_dataset3 = pd.read_json("./data/fitbit_sleep_data_3.json")
 fitbit_dataset = pd.json_normalize(
     pd.concat(
         [fitbit_dataset3, fitbit_dataset1, fitbit_dataset2], ignore_index=True
@@ -201,8 +201,6 @@ stage1_dataset = final_dataset.merge(
 stage1_dataset.rename(
     columns={"deep": "time_to_deep_seconds", "rem": "time_to_rem_seconds"}, inplace=True
 )
-
-# final_dataset.to_csv("./data/final_dataset.csv", index=False)
 
 stage1_dataset["date_of_sleep"] = pd.to_datetime(stage1_dataset["date_of_sleep"])
 data_f = stage1_dataset.groupby("date_of_sleep").first().reset_index()
@@ -464,3 +462,39 @@ print(clf.score(X_test, y_test))
 
 end_time = time.time()
 print(end_time - start_time)
+
+#Visualizations
+import matplotlib.pyplot as plt
+
+final_dataset['time'] = pd.to_datetime(final_dataset['date_of_sleep']) + pd.to_timedelta(final_dataset['time_hours'], unit='h') + pd.to_timedelta(final_dataset['time_minutes'], unit='m') + pd.to_timedelta(final_dataset['time_seconds'], unit='s')
+final_dataset = final_dataset.sort_values(by='time')
+transitions = final_dataset['category'].shift() != final_dataset['category']
+
+stage_mapping = {'awake': 0, 'light': 1, 'deep': 2, 'rem': 3}
+final_dataset['stage_numeric'] = final_dataset['category'].map(stage_mapping)
+final_dataset['transition'] = final_dataset['stage_numeric'].diff() != 0
+
+last_3_days = final_dataset[final_dataset['date_of_sleep'] >= final_dataset['date_of_sleep'].max() - pd.DateOffset(days=3)]
+
+# Plot line chart
+plt.figure(figsize=(10, 6))
+plt.plot(last_3_days['time'], last_3_days['stage_numeric'], marker='o', linestyle='-', color='blue')
+plt.title('Sleep Stage Transitions Over Time (Latest 3 days)')
+plt.xlabel('Time')
+plt.ylabel('Sleep Stage')
+plt.yticks(range(len(stage_mapping)), stage_mapping.keys())
+plt.grid(True)
+plt.show()
+
+last_4_weeks = final_dataset[final_dataset['date_of_sleep'] >= final_dataset['date_of_sleep'].max() - pd.DateOffset(weeks=4)]
+weekly_stage_duration = last_4_weeks.groupby([pd.Grouper(key='date_of_sleep', freq='W-MON'), 'category'])['seconds_count'].sum().unstack(fill_value=0)
+
+# Plot stacked bar chart
+plt.figure(figsize=(12, 6))
+weekly_stage_duration.plot(kind='bar', stacked=True, ax=plt.gca())
+plt.title('Total Time Spent in Each Sleep Stage for Last 4 Weeks')
+plt.xlabel('Week')
+plt.ylabel('Total Time (seconds)')
+plt.xticks(rotation=45)
+plt.legend(title='Sleep Stage')
+plt.show()
