@@ -458,10 +458,50 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 clf = make_pipeline(StandardScaler(), SVC(gamma="auto"))
 clf.fit(X_train, y_train)
-print(clf.score(X_test, y_test))
+y_pred = clf.predict(X_test)
 
 end_time = time.time()
 print(end_time - start_time)
+
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_curve, auc
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
+
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+recall = recall_score(y_test, y_pred, average='weighted')
+print("Recall:", recall)
+
+precision = precision_score(y_test, y_pred, average='weighted')
+print("Precision:", precision)
+
+f1 = f1_score(y_test, y_pred, average='weighted')
+print("F1 Score:", f1)
+
+y_test_binary = label_binarize(y_test, classes=clf.classes_)
+y_pred_prob = clf.decision_function(X_test)
+
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+for i in range(len(clf.classes_)):
+    fpr[i], tpr[i], _ = roc_curve(y_test_binary[:, i], y_pred_prob[:, i])
+    roc_auc[i] = auc(fpr[i], tpr[i])
+
+plt.figure(figsize=(8, 6))
+for i in range(len(clf.classes_)):
+    plt.plot(fpr[i], tpr[i], label=f'Class {clf.classes_[i]} (AUC = {roc_auc[i]:.2f})')
+
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('OvR ROC Curve')
+plt.legend(loc="lower right")
+plt.show()
 
 #Visualizations
 import matplotlib.pyplot as plt
