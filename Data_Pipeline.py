@@ -5,8 +5,22 @@ from scipy import stats
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 import time
+from sklearn.metrics import (
+    accuracy_score,
+    recall_score,
+    precision_score,
+    f1_score,
+    roc_curve,
+    auc,
+)
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
 
 start_time = time.time()
 
@@ -176,6 +190,7 @@ final_dataset["weekday"] = pd.to_datetime(final_dataset["date_of_sleep"]).dt.str
 final_dataset["date_of_sleep"] = pd.to_datetime(final_dataset["date_of_sleep"])
 
 
+# Sleep classification.
 def time_to_sleep_stages(group, sleep_stages):
     time_to_stages = {}
 
@@ -456,29 +471,44 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.25, random_state=6
 )
 
+classification_scores = list()
+predictions = list()
+
+print("Running Support Vector Machines\n")
 clf = make_pipeline(StandardScaler(), SVC(gamma="auto"))
 clf.fit(X_train, y_train)
-y_pred = clf.predict(X_test)
+classification_scores.append(clf.score(X_test, y_test))
+predictions.append(clf.predict(X_test))
+
+print("Running Random Forests classifier\n")
+clf1 = RandomForestClassifier(max_depth=10, random_state=6)
+clf1.fit(X_train, y_train)
+classification_scores.append(clf1.score(X_test, y_test))
+predictions.append(clf1.predict(X_test))
+
+print("Running Decision Tree classifier\n")
+clf2 = DecisionTreeClassifier(random_state=6)
+clf2.fit(X_train, y_train)
+classification_scores.append(clf2.score(X_test, y_test))
+predictions.append(clf2.predict(X_test))
+
+print("Running Logistic Regression classifier\n")
+clf3 = LogisticRegression(random_state=6)
+clf3.fit(X_train, y_train)
+classification_scores.append(clf3.score(X_test, y_test))
+predictions.append(clf3.predict(X_test))
+
+print(classification_scores)
+
+for y_pred in predictions:
+    print(accuracy_score(y_test, y_pred))
+    print(recall_score(y_test, y_pred, average="weighted"))
+    print(precision_score(y_test, y_pred, average="weighted"))
+    print(f1_score(y_test, y_pred, average="weighted"))
+    print("\n")
 
 end_time = time.time()
-print(end_time - start_time)
-
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_curve, auc
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import label_binarize
-from sklearn.multiclass import OneVsRestClassifier
-
-accuracy = accuracy_score(y_test, y_pred)
-print("Accuracy:", accuracy)
-
-recall = recall_score(y_test, y_pred, average='weighted')
-print("Recall:", recall)
-
-precision = precision_score(y_test, y_pred, average='weighted')
-print("Precision:", precision)
-
-f1 = f1_score(y_test, y_pred, average='weighted')
-print("F1 Score:", f1)
+print("Run time is,", end_time - start_time)
 
 y_test_binary = label_binarize(y_test, classes=clf.classes_)
 y_pred_prob = clf.decision_function(X_test)
@@ -492,49 +522,71 @@ for i in range(len(clf.classes_)):
 
 plt.figure(figsize=(8, 6))
 for i in range(len(clf.classes_)):
-    plt.plot(fpr[i], tpr[i], label=f'Class {clf.classes_[i]} (AUC = {roc_auc[i]:.2f})')
+    plt.plot(fpr[i], tpr[i], label=f"Class {clf.classes_[i]} (AUC = {roc_auc[i]:.2f})")
 
-plt.plot([0, 1], [0, 1], 'k--')
+plt.plot([0, 1], [0, 1], "k--")
 plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('OvR ROC Curve')
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("OvR ROC Curve")
 plt.legend(loc="lower right")
 plt.show()
 
-#Visualizations
-import matplotlib.pyplot as plt
+# Visualizations
 
-final_dataset['time'] = pd.to_datetime(final_dataset['date_of_sleep']) + pd.to_timedelta(final_dataset['time_hours'], unit='h') + pd.to_timedelta(final_dataset['time_minutes'], unit='m') + pd.to_timedelta(final_dataset['time_seconds'], unit='s')
-final_dataset = final_dataset.sort_values(by='time')
-transitions = final_dataset['category'].shift() != final_dataset['category']
+final_dataset["time"] = (
+    pd.to_datetime(final_dataset["date_of_sleep"])
+    + pd.to_timedelta(final_dataset["time_hours"], unit="h")
+    + pd.to_timedelta(final_dataset["time_minutes"], unit="m")
+    + pd.to_timedelta(final_dataset["time_seconds"], unit="s")
+)
+final_dataset = final_dataset.sort_values(by="time")
+transitions = final_dataset["category"].shift() != final_dataset["category"]
 
-stage_mapping = {'awake': 0, 'light': 1, 'deep': 2, 'rem': 3}
-final_dataset['stage_numeric'] = final_dataset['category'].map(stage_mapping)
-final_dataset['transition'] = final_dataset['stage_numeric'].diff() != 0
+stage_mapping = {"awake": 0, "light": 1, "deep": 2, "rem": 3}
+final_dataset["stage_numeric"] = final_dataset["category"].map(stage_mapping)
+final_dataset["transition"] = final_dataset["stage_numeric"].diff() != 0
 
-last_3_days = final_dataset[final_dataset['date_of_sleep'] >= final_dataset['date_of_sleep'].max() - pd.DateOffset(days=3)]
+last_3_days = final_dataset[
+    final_dataset["date_of_sleep"]
+    >= final_dataset["date_of_sleep"].max() - pd.DateOffset(days=3)
+]
 
 # Plot line chart
 plt.figure(figsize=(10, 6))
-plt.plot(last_3_days['time'], last_3_days['stage_numeric'], marker='o', linestyle='-', color='blue')
-plt.title('Sleep Stage Transitions Over Time (Latest 3 days)')
-plt.xlabel('Time')
-plt.ylabel('Sleep Stage')
+plt.plot(
+    last_3_days["time"],
+    last_3_days["stage_numeric"],
+    marker="o",
+    linestyle="-",
+    color="blue",
+)
+plt.title("Sleep Stage Transitions Over Time (Latest 3 days)")
+plt.xlabel("Time")
+plt.ylabel("Sleep Stage")
 plt.yticks(range(len(stage_mapping)), stage_mapping.keys())
 plt.grid(True)
 plt.show()
 
-last_4_weeks = final_dataset[final_dataset['date_of_sleep'] >= final_dataset['date_of_sleep'].max() - pd.DateOffset(weeks=4)]
-weekly_stage_duration = last_4_weeks.groupby([pd.Grouper(key='date_of_sleep', freq='W-MON'), 'category'])['seconds_count'].sum().unstack(fill_value=0)
+last_4_weeks = final_dataset[
+    final_dataset["date_of_sleep"]
+    >= final_dataset["date_of_sleep"].max() - pd.DateOffset(weeks=4)
+]
+weekly_stage_duration = (
+    last_4_weeks.groupby([pd.Grouper(key="date_of_sleep", freq="W-MON"), "category"])[
+        "seconds_count"
+    ]
+    .sum()
+    .unstack(fill_value=0)
+)
 
 # Plot stacked bar chart
 plt.figure(figsize=(12, 6))
-weekly_stage_duration.plot(kind='bar', stacked=True, ax=plt.gca())
-plt.title('Total Time Spent in Each Sleep Stage for Last 4 Weeks')
-plt.xlabel('Week')
-plt.ylabel('Total Time (seconds)')
+weekly_stage_duration.plot(kind="bar", stacked=True, ax=plt.gca())
+plt.title("Total Time Spent in Each Sleep Stage for Last 4 Weeks")
+plt.xlabel("Week")
+plt.ylabel("Total Time (seconds)")
 plt.xticks(rotation=45)
-plt.legend(title='Sleep Stage')
+plt.legend(title="Sleep Stage")
 plt.show()
