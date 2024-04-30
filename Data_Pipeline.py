@@ -21,6 +21,7 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
+import seaborn as sns
 
 start_time = time.time()
 
@@ -190,7 +191,6 @@ final_dataset["weekday"] = pd.to_datetime(final_dataset["date_of_sleep"]).dt.str
 final_dataset["date_of_sleep"] = pd.to_datetime(final_dataset["date_of_sleep"])
 
 
-# Sleep classification.
 def time_to_sleep_stages(group, sleep_stages):
     time_to_stages = {}
 
@@ -217,6 +217,7 @@ stage1_dataset.rename(
     columns={"deep": "time_to_deep_seconds", "rem": "time_to_rem_seconds"}, inplace=True
 )
 
+# Sleep classification.
 stage1_dataset["date_of_sleep"] = pd.to_datetime(stage1_dataset["date_of_sleep"])
 data_f = stage1_dataset.groupby("date_of_sleep").first().reset_index()
 data_l = stage1_dataset.groupby("date_of_sleep").last().reset_index()
@@ -403,11 +404,13 @@ for _, row in final_insights.iterrows():
 
     if np.ceil(row["time_to_deep_sleep"] / 60) < 30:
         scores[4] = np.random.choice([scores[0], scores[1]], 1)[0]
+        # scores[4] = scores[1]
     else:
         scores[4] = 3
 
     if np.ceil(row["time_to_rem_sleep"] / 60) < 90:
         scores[5] = np.random.choice([scores[0], scores[1]], 1)[0]
+        # scores[5] = scores[1]
     else:
         scores[5] = 3
 
@@ -432,18 +435,17 @@ labels = []
 for row in results:
     deviation = np.where(row == 3.0)[0]
     if len(deviation) > 2:
-        labels.append("Dolphin")
+        labels.append(3)
     else:
         label1 = np.where(row == 1.0)[0]
         label2 = np.where(row == 2.0)[0]
 
         if len(label1) > len(label2):
-            labels.append("Bear")
+            labels.append(1)
         else:
-            labels.append("Wolf")
+            labels.append(2)
 
 final_insights["labels"] = labels
-
 
 df = final_insights.drop(
     [
@@ -460,6 +462,8 @@ df = final_insights.drop(
     ],
     axis=1,
 )
+
+df.to_csv("last.csv")
 
 y = df.loc[:, "labels"]
 X = df.iloc[:, :-1]
@@ -498,17 +502,21 @@ clf3.fit(X_train, y_train)
 classification_scores.append(clf3.score(X_test, y_test))
 predictions.append(clf3.predict(X_test))
 
-print(classification_scores)
 
-for y_pred in predictions:
-    print(accuracy_score(y_test, y_pred))
-    print(recall_score(y_test, y_pred, average="weighted"))
-    print(precision_score(y_test, y_pred, average="weighted"))
-    print(f1_score(y_test, y_pred, average="weighted"))
+for y_pred, model_name in zip(
+    predictions, ["SVM", "Random Forest", "Decision Tree", "Logistic Regression"]
+):
+    print("For {0} classifier,\n".format(model_name))
+    print("Accuracy score is,", accuracy_score(y_test, y_pred))
+    print("Recall score is,", recall_score(y_test, y_pred, average="weighted"))
+    print("Precision score is,", precision_score(y_test, y_pred, average="weighted"))
+    print("F1 score is,", f1_score(y_test, y_pred, average="weighted"))
     print("\n")
 
 end_time = time.time()
 print("Run time is,", end_time - start_time)
+
+# sns.pointplot(np.arange(len(y), y))
 
 y_test_binary = label_binarize(y_test, classes=clf.classes_)
 y_pred_prob = clf.decision_function(X_test)
@@ -533,8 +541,6 @@ plt.title("OvR ROC Curve")
 plt.legend(loc="lower right")
 plt.show()
 
-# Visualizations
-
 final_dataset["time"] = (
     pd.to_datetime(final_dataset["date_of_sleep"])
     + pd.to_timedelta(final_dataset["time_hours"], unit="h")
@@ -553,7 +559,6 @@ last_3_days = final_dataset[
     >= final_dataset["date_of_sleep"].max() - pd.DateOffset(days=3)
 ]
 
-# Plot line chart
 plt.figure(figsize=(10, 6))
 plt.plot(
     last_3_days["time"],
@@ -581,7 +586,6 @@ weekly_stage_duration = (
     .unstack(fill_value=0)
 )
 
-# Plot stacked bar chart
 plt.figure(figsize=(12, 6))
 weekly_stage_duration.plot(kind="bar", stacked=True, ax=plt.gca())
 plt.title("Total Time Spent in Each Sleep Stage for Last 4 Weeks")
